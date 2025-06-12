@@ -1,1 +1,1 @@
-### webmachine template for openai.
+### webmachine template for openaio.
