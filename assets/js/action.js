@@ -279,16 +279,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
 						try {
 							const llmResponseData = e.data.data;
-							if (!llmResponseData || !llmResponseData.content || llmResponseData.content.length === 0) {
-								console.error('LLM response is missing a message content.');
+							if (!llmResponseData) {
+								console.error('LLM response is missing messages.');
 								alert('Received an empty or invalid response from the LLM.');
 								return;
 							}
 
-							// Remove Meta's stop_reason from the message
 							console.log('Initial llmResponseData:', llmResponseData)
-							// delete llmResponseData.stop_reason;
-							// console.log('Final assistantMessagePayload:', assistantMessagePayload)
+
+							const regularText = llmResponseData
+								.filter(item => item.type === 'message' && Array.isArray(item.content))
+								.flatMap(item =>
+									item.content
+										.filter(contentPart => contentPart && typeof contentPart.text === 'string')
+										.map(contentPart => contentPart.text)
+								)
+								.join(' ');
+							const desoupedText = llmSoupToText(regularText);
+							console.log('Regular text:', desoupedText);
+
+							const thoughtsText = llmResponseData
+								.filter(item => item.type === 'reasoning' && Array.isArray(item.content))
+								.flatMap(item =>
+									item.content
+										.filter(contentPart => contentPart && typeof contentPart.text === 'string')
+										.map(contentPart => contentPart.text)
+								)
+								.join(' ');
+							const desoupedThoughts = llmSoupToText(thoughtsText);
+							console.log('Thoughts text:', desoupedThoughts);
 
 							const newCmjMessage = {
 								role: llmResponseData.role,
@@ -296,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
 								content: llmResponseData.content
 							};
 
-							// cmjMessages (from the outer scope of the Alt+Shift listener) is updated
 							cmjMessages.push(newCmjMessage);
 
 							// CmjToPlatoText is global
@@ -308,8 +326,49 @@ document.addEventListener('DOMContentLoaded', () => {
 							}
 
 							localStorage.setItem('multilogue', updatedPlatoText);
+							localStorage.setItem('thoughts', desoupedThoughts);
 
-							// updateDisplayState
+							console.log('Worker task successful. LLM Response processed. Thoughts stored.');
+
+							// --- Open or ensure the thoughts tab is open/updated ---
+							const thoughtsPageUrl = 'thoughts.html'; // Assuming thoughts.html is in the same directory level
+							let thoughtsTab = window.open('', 'oaioThoughtsTab'); // Use a consistent name to reference the tab
+
+							if (!thoughtsTab || thoughtsTab.closed) {
+								console.log('Thoughts tab not found or closed, opening new one.');
+								thoughtsTab = window.open(thoughtsPageUrl, 'oaioThoughtsTab');
+								// If a new tab is opened, browser focus will likely shift to it.
+							} else {
+								// Tab exists, check if it's on the correct page or needs navigation
+								let currentPath = '';
+								let needsNavigation = false;
+								try {
+									currentPath = thoughtsTab.location.pathname;
+									// Check if the current path correctly points to thoughts.html
+									// This handles cases like the tab being open but on 'about:blank'
+									if (thoughtsTab.location.href === 'about:blank' || !currentPath.endsWith(thoughtsPageUrl)) {
+										needsNavigation = true;
+									}
+								} catch (e) {
+									// Cross-origin error likely means it's on 'about:blank' or a different domain if something went wrong.
+									console.warn('Could not access thoughtsTab.location.pathname, will attempt to navigate.');
+									needsNavigation = true; // Assume navigation is needed
+								}
+
+								if (needsNavigation) {
+									console.log(`Thoughts tab needs navigation. Current href: ${thoughtsTab.location.href}. Attempting to set to ${thoughtsPageUrl}`);
+									try {
+										thoughtsTab.location.href = thoughtsPageUrl;
+									} catch (navError) {
+										console.error('Failed to navigate existing thoughts tab, trying to reopen:', navError);
+										// Fallback: try to open a new one, which might be blocked or create a new instance
+										thoughtsTab = window.open(thoughtsPageUrl, 'oaioThoughtsTab');
+									}
+								} else {
+									console.log('Thoughts tab already open and on the correct page. localStorage change will trigger its update.');
+								}
+							}
+
 							updateDisplayState();
 							console.log('Dialogue updated with LLM response.');
 
