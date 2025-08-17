@@ -16,7 +16,8 @@ machine:
   name: Thingking-Machine
   verb: Thingking
   instructions_file: thingking.txt
-  token: openai.txt
+  token: openai
+  server: https://localhost:443
   apiUrl: https://api.openai.com/v1/responses
 
 app:
