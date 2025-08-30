@@ -15,7 +15,7 @@ description: A machine is a thing. Things can not think. ...but some of them can
 machine:
   name: Thingking-Machine
   verb: Thingking
-  instructions_file: thingking.txt
+  instructions_file: thingking.md
   token: openai
   server: https://localhost:443
   apiUrl: https://api.openai.com/v1/responses
