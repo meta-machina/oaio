@@ -24,7 +24,7 @@ app:
   worker_name: oaioapi.js
 
 lm:
-  model: gpt-5-2025-08-07
+  model: gpt-5.1
   max_output_tokens: 100000
   reasoning_effort: high
   reasoning_summary: detailed
