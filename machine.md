@@ -25,7 +25,7 @@ title: Thingking
 <div id="instructionsPopupOverlay" class="popup-overlay" style="display: none;">
     <div class="popup">
         <h3>Paste your 'system' instructions for the model here.</h3>
-        <textarea id="instructionsPopupInput" rows="18" placeholder="Paste your instructions here, they will be used until the end of this session..."></textarea>
+        <textarea id="instructionsPopupInput" rows="17" placeholder="Paste your instructions here, they will be used until the end of this session..."></textarea>
         <div style="margin-top: 10px;">
             <button id="instructionsPopupSaveButton" style="margin-right: 10px;">Use these instructions</button>
             <button id="instructionsPopupFileButton" style="margin-right: 10px;">File</button>
