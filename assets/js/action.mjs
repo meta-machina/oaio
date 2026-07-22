@@ -10,6 +10,11 @@ import {
   showTokenPopup,
   hideTokenPopup
 } from './token_popup.mjs';
+import {
+  showInstructionsPopup,
+  hideInstructionsPopup
+} from "./instructions_popup.mjs";
+
 
 /**
  * Manages the entire state and behavior of the machine page application.
@@ -49,7 +54,6 @@ class MachineApp {
   _parseSettings() {
     this.settings = {
       machine: JSON.parse(this.configElement.dataset.machineSettings),
-      github: JSON.parse(this.configElement.dataset.githubSettings),
       llm: JSON.parse(this.configElement.dataset.lmSettings),
       app: JSON.parse(this.configElement.dataset.appSettings),
       workerUrl: this.configElement.dataset.workerUrl,
@@ -96,6 +100,10 @@ class MachineApp {
       tokenPopupCancelButton: document.getElementById('tokenPopupCancelButton'),
       loadingOverlay: document.getElementById('loading-overlay'),
       tokenPopupInput: document.getElementById('tokenPopupInput'),
+      instructionsPopupSaveButton: document.getElementById('instructionsPopupSaveButton'),
+      instructionsPopupCancelButton: document.getElementById('instructionsPopupCancelButton'),
+      instructionsPopupFileButton: document.getElementById('instructionsPopupFileButton'),
+      instructionsPopupInput: document.getElementById('instructionsPopupInput')
     };
     
     // Make the dialogue wrapper programmatically focusable
@@ -110,6 +118,9 @@ class MachineApp {
   _attachEventListeners() {
     this.elements.tokenPopupSaveButton.addEventListener('click', this._handleTokenSave);
     this.elements.tokenPopupCancelButton.addEventListener('click', hideTokenPopup);
+    this.elements.instructionsPopupSaveButton.addEventListener('click', this._handleInstructionsSave);
+    this.elements.instructionsPopupCancelButton.addEventListener('click', hideInstructionsPopup);
+    this.elements.instructionsPopupFileButton.addEventListener('click', this._handleInstructionsDownloadSave);
     this.elements.chooseFileButton.addEventListener('click', this._handleFilePick);
     this.elements.dialogueWrapper.addEventListener('click', this.switchToEditMode);
     this.elements.textarea.addEventListener('keydown', this._handleEditorSave);
@@ -136,6 +147,48 @@ class MachineApp {
       this.runLlm(); // Optionally, re-trigger the LLM run after getting the token
     } else {
       alert('Please enter a valid API token.');
+    }
+  };
+  
+  _handleInstructionsSave = () => {
+    const instructionsInputVal = this.elements.instructionsPopupInput.value;
+    if (instructionsInputVal && instructionsInputVal.trim()) {
+      this.settings.machine.instructions = instructionsInputVal.trim();
+      console.log('instructions have been set manually via pop-up.');
+      hideInstructionsPopup();
+      this.runLlm(); // Optionally, re-trigger the LLM run after getting the token
+    } else {
+      console.log('instructions text is empty');
+      this._handleInstructionsDownloadSave()
+    }
+  };
+  
+  _handleInstructionsDownloadSave = async () => {
+    hideInstructionsPopup();
+    var fileContent
+    try {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'Text Files',
+          accept: { 'text/plain': ['.txt', '.md', '.text'] },
+        }]
+      });
+      const file = await fileHandle.getFile();
+      fileContent = await file.text();
+      console.log('file', fileContent)
+      
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Error opening file:', err);
+        alert(`Error opening file: ${err.message}`);
+      }
+    }
+    if (fileContent && fileContent.trim()) {
+      this.settings.machine.instructions = fileContent.trim();
+      console.log('instructions have been downloaded from file');
+      this.runLlm(); // re-trigger the LLM run after getting the instructions
+    } else {
+      console.log('instructions text is empty');
     }
   };
   
@@ -336,10 +389,57 @@ class MachineApp {
     }
   };
   
+  _ensureInstructions = async () => {
+    // if (this.settings.machine.instructions) return true;
+    
+    try {
+      const instructionsResponse = await fetch(this.settings.machine.server + '/' + this.settings.machine.instructions_file, {mode: "cors"});
+      if (!instructionsResponse.ok) {
+        throw new Error(`Server responded with status: ${instructionsResponse.status}`);
+      }
+      const fetchedInstructions = (await instructionsResponse.text()).trim();
+      if (!fetchedInstructions) {
+        throw new Error("Fetched instructions text is empty.");
+      }
+      this.settings.machine.instructions = fetchedInstructions;
+      console.log('Instructions fetched successfully from the server.');
+      return true;
+    } catch (fetchError) {
+      // Is it because of the debug on the local server?
+      try {
+        const instructionsResponse = await fetch('https://localhost:8443/' + this.settings.machine.instructions_file, {mode: "cors"});
+        if (!instructionsResponse.ok) {
+          throw new Error(`Server responded with status: ${instructionsResponse.status}`);
+        }
+        const fetchedInstructions = (await instructionsResponse.text()).trim();
+        if (!fetchedInstructions) {
+          throw new Error("Fetched instructions text is empty.");
+        }
+        this.settings.machine.instructions = fetchedInstructions;
+        this.settings.machine.server = 'https://localhost:8443'
+        console.log(`Instructions fetched successfully from the debug server; server URL updated to ${this.settings.machine.server}`);
+        return true;
+      } catch (fetchError2) {
+        console.error('Instructions fetch from debug server failed:', fetchError.message);
+        // if the instructions have been received and saved - abort
+        if (this.settings.machine.instructions) return true;
+        // otherwise show popup and wait for them
+        showInstructionsPopup(this.settings.machine.default_instruction); // Show pop-up to ask for instructions
+        return false; // Indicate that we couldn't get a token
+      }
+    }
+  };
+  
   runLlm = async () => {
     const hasToken = await this._ensureToken();
     if (!hasToken) {
       console.log('LLM run aborted: No API token available.');
+      return;
+    }
+    
+    const hasInstructions = await this._ensureInstructions();
+    if (!hasInstructions) {
+      console.log('LLM run aborted: No "system" instructions provided.');
       return;
     }
     

@@ -12,17 +12,6 @@ baseurl: /oaio
 title: Thingking Machine
 description: A machine is a thing. Things can not think. ...but some of them can thingk!
 
-machine:
-  name: Thingking-Machine
-  verb: Thingking
-  instructions_file: thingking.md
-  token: openai
-  server: https://localhost:443
-  apiUrl: https://api.openai.com/v1/responses
-
-app:
-  worker_name: oaioapi.js
-
 lm:
   model: gpt-5.4
   max_output_tokens: 100000
@@ -30,9 +19,38 @@ lm:
   reasoning_summary: detailed
   temperature: 1.0
 
-github_settings:
-  owner: thingking-machine
-  repo: thingking_machine
-  file_name: machina.yaml
-  branch: main
-  token_file: github.txt
+app:
+  worker_name: oaioapi.js
+
+machine:
+  name: Thingking-Machine
+  verb: Thingking
+  instructions_file: thingking.md
+  token: openai
+  server: https://localhost:443
+  apiUrl: https://api.openai.com/v1/responses
+  default_instruction: >-
+    You are Thingking-Machine — a language model designed to
+    participate as an active entity in multi-entity/multi-turn
+    conversations.
+    
+    Your purpose is to engage thoughtfully, offering insights
+    based on logical reasoning and the conversation’s context.
+    
+    Thingking-Machine answers to other participants addressing
+    them in first person, but does not introduce itself, does
+    not add any notes or explanations of its workings at the
+    end of its utterance.
+    
+    Do *not* use any lists (numbered or bulleted) under any
+    circumstances. Avoid any form of emphasis, such as bolding,
+    italics, or underlining. Start all paragraphs
+    except the first one with a new line character followed by
+    a tab character.
+    
+    Thingking-Machine maintains strictly neutral and objective
+    tone. Avoid any language that could be interpreted as
+    sycophantic, overly enthusiastic, or expressing personal
+    opinions or feelings. Do not use exclamation points,
+    excessive praise, or any form of emotional language. Do not
+    attempt to simulate emotions.

@@ -146,6 +146,18 @@
   font-size: 1em;
 }
 
+.popup textarea {
+  width: 95%;
+  margin: 0 auto 10px auto;
+  display: block;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 1px;
+  font-size: 1em;
+  font-family: inherit;
+  resize: vertical;
+}
+
 .popup button {
   background: #007bff;
   color: white;

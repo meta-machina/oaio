@@ -14,25 +14,6 @@ self.onmessage = async function (event) {
 
 
 	try {
-		// --- 2. Fetch instruction ---
-		let instructionText; // Declare here to ensure it's in scope
-		try {
-			console.log(`Worker: Fetching the Machine instruction from ${machineConfig.server}`);
-			const instructionResponse = await fetch(machineConfig.server + '/' + machineConfig.instructions_file, {mode: "cors"});
-			if (!instructionResponse.ok) {
-				console.log(`Worker: HTTP error fetching instruction! status: ${instructionResponse.status}. Using default instruction.`);
-				// Default instruction if fetching fails or file not found
-				instructionText = "You are a helpful assistant.";
-			} else {
-				instructionText = (await instructionResponse.text()).trim();
-				console.log('Worker: Instruction fetched successfully.');
-				console.log('Worker: Instruction:', instructionText);
-			}
-		} catch (fetchError) {
-			console.error('Worker: Error during instruction file fetch:', fetchError.message, '. Using default instruction.');
-			instructionText = "You are a helpful assistant."; // Default instruction on any fetch error
-		}
-
 		// --- 3. Prepare messages for the API call ---
 		let messagesForApi;
 
@@ -50,7 +31,7 @@ self.onmessage = async function (event) {
 		// --- 4. Prepare the final API payload ---
 		const defaultApiParameters = {
 			model: llmSettings.model || machineConfig.llm,
-			instructions: instructionText,
+			instructions: machineConfig.instructions,
 			max_output_tokens: llmSettings.max_output_tokens || 8192,
 			temperature: llmSettings.temperature || 1.0,
 			reasoning: {
@@ -94,7 +75,7 @@ self.onmessage = async function (event) {
 
 		const apiData = await apiCallResponse.json();
 		console.log('Worker: API call successful, response:', apiData);
-		const choice = apiData.output
+		const choice = apiData.output;
 		console.log('Worker: API output:', choice);
 
 		// Send the successful result back to the main thread
